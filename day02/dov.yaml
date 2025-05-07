@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1 
+kind: Deployment 
+metadata: 
+  name: dov-deploy 
+  namespace: myns 
+  labels: 
+    app: dov 
+spec: 
+  replicas: 3
+  selector:
+    matchLabels:
+      app: dov
+      env: prod
+  template: 
+    metadata:
+      name: dov-po 
+      labels:
+        app: dov 
+        env: prod
+    spec:
+      containers:
+      - name: dov-containers 
+        image: chukmunnlee/dov-bear:v5
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: INSTANCE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: dov-cm
+              key: instance_name
+        envFrom:
+        - secretRef:
+            # the keys in dov-secret will be use as env variable name
+            name: dov-secret
+        ports:
+        - name: dov-port 
+          containerPort: 3000
+        resources: {}
+
+--- 
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: dov-svc 
+  namespace: myns 
+  labels:
+    app: dov 
+spec: 
+  # clusterip - svc is available inside the cluster only
+  type: ClusterIP
+  selector: 
+    app: dov 
+    env: prod
+  ports:
+  - name: dov-port 
+    port: 8080
+    targetPort: dov-port

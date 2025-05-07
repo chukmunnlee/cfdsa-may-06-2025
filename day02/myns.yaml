@@ -1,0 +1,10 @@
+---
+# do not add 'core' to apiVersion
+apiVersion: v1
+kind: Namespace 
+metadata:
+  name: myns
+  labels:
+    app: myapp
+    version: v1
+    dept: eng
