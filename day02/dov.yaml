@@ -26,13 +26,8 @@ spec:
         env:
         - name: INSTANCE_NAME
           valueFrom:
-            configMapKeyRef:
-              name: dov-cm
-              key: instance_name
-        envFrom:
-        - secretRef:
-            # the keys in dov-secret will be use as env variable name
-            name: dov-secret
+            fieldRef:
+              fieldPath: status.podIP
         ports:
         - name: dov-port 
           containerPort: 3000
@@ -56,3 +51,24 @@ spec:
   - name: dov-port 
     port: 8080
     targetPort: dov-port
+
+--- 
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: Ingress 
+metadata: 
+  name: dov-ing 
+  namespace: myns 
+spec: 
+  ingressClassName: nginx 
+  rules:
+  - host: dov-188.166.206.98.nip.io 
+    http: 
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service: 
+            name: dov-svc 
+            port:
+              name: dov-port
