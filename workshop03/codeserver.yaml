@@ -1,0 +1,94 @@
+--- 
+apiVersion: v1 
+kind: PersistentVolumeClaim 
+metadata:
+  name: codeserver-pvc 
+  namespace: codeserver
+spec:
+  storageClassName: do-block-storage
+  accessModes:
+  - ReadWriteOncePod
+  resources:
+    requests:
+      storage: 1Gi
+
+--- 
+apiVersion: apps/v1 
+kind: Deployment 
+metadata:
+  name: codeserver-deploy 
+  namespace: codeserver 
+spec: 
+  replicas: 1 
+  selector: 
+    matchLabels: 
+      app: codeserver
+      name: codeserver-po 
+  template: 
+    metadata: 
+      name: codeserver-po 
+      labels: 
+        app: codeserver
+        name: codeserver-po 
+    spec:
+      volumes:
+      - name: data-vol 
+        persistentVolumeClaim: 
+          claimName: codeserver-pvc
+      containers:
+      - name: codeserver-container
+        image: linuxserver/code-server:4.99.4
+        imagePullPolicy: IfNotPresent
+        envFrom: 
+        - secretRef:
+            name: codeserver-secret
+        - configMapRef:
+            name: codeserver-cm
+        ports:
+        - name: codeserver-port
+          containerPort: 8443
+        volumeMounts:
+        - name: data-vol 
+          mountPath: /config/workspace
+        resources:
+          requests: 
+            cpu: 200m
+            memory: 512Mi
+          limits: 
+            cpu: 200m
+            memory: 512Mi
+
+--- 
+apiVersion: v1 
+kind: Service 
+metadata: 
+  name: codeserver-svc 
+  namespace: codeserver 
+spec:
+  type: ClusterIP 
+  selector:
+    app: codeserver
+    name: codeserver-po 
+  ports:
+  - name: codeserver-port 
+    port: 8443
+        
+--- 
+apiVersion: networking.k8s.io/v1 
+kind: Ingress
+metadata: 
+  name: codeserver-ing 
+  namespace: codeserver 
+spec: 
+  ingressClassName: nginx 
+  rules:
+  - host: code-188.166.206.98.nip.io
+    http:
+      paths:
+      - path: / 
+        pathType: Prefix 
+        backend:
+          service: 
+            name: codeserver-svc 
+            port:
+              name: codeserver-port
