@@ -1,0 +1,60 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- ../../base
+- ./minio-ing.yaml
+
+namespace: prod-ns
+
+labels:
+- pairs:
+    env: prod
+  includeSelectors: true
+  includeTemplates: true
+
+replicas: 
+- name: minio-sts
+  count: 3
+
+configMapGenerator:
+- name: minio-cm
+  namespace: minio
+  behavior: merge
+  literals:
+  - MINIO_ROOT_USER=admin
+  - MINIO_DISTRIBUTED_NODES=minio-sts-{0...2}.minio-hsvc.prod-ns.svc.cluster.local/data
+
+secretGenerator:
+- name: minio-secret
+  namespace: minio
+  behavior: merge
+  literals:
+  - MINIO_ROOT_PASSWORD=adminadmin
+
+patches:
+- target:
+    group: apps
+    version: v1
+    kind: StatefulSet
+    name: minio-sts
+    namespace: minio
+  patch: |
+    - op: replace
+      path: /spec/volumeClaimTemplates/0/spec/resources/requests/storage
+      value: 2Gi
+- target:
+    group: networking.k8s.io
+    version: v1
+    kind: Ingress
+    name: minio-ing
+    namespace: minio
+  patch: |
+    - op: replace
+      path: /spec/rules/0/host
+      value: prod.data-188.166.206.98.nip.io
+    - op: replace
+      path: /spec/rules/1/host
+      value: prod.console-188.166.206.98.nip.io
+
