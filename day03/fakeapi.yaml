@@ -17,6 +17,8 @@ metadata:
   namespace: myns
   labels:
     app: bgg
+  annotations:
+    note: 'deployed on Fri May  9 09:16:26 AM +08 2025'
 data: 
   BGG_DB_USER: root 
   mysql.cnf: |

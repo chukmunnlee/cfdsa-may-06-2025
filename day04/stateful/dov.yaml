@@ -6,18 +6,30 @@ metadata:
 
 ---
 apiVersion: apps/v1 
-kind: Deployment 
+kind: StatefulSet 
 metadata: 
   name: dov-deploy 
   namespace: dov 
   labels: 
     app: dov 
 spec: 
+  # headless service
+  serviceName: dov-hsvc
   replicas: 3
   selector:
     matchLabels:
       app: dov
       env: prod
+  volumeClaimTemplates: 
+  - metadata: 
+      name: data-vol 
+    spec:
+      accessModes: 
+      - ReadWriteOncePod 
+      storageClassName: do-block-storage
+      resources:
+        requests:
+          storage: 1Gi
   template: 
     metadata:
       name: dov-po 
@@ -29,13 +41,13 @@ spec:
       - name: dov-containers 
         image: chukmunnlee/dov-bear:v5
         imagePullPolicy: IfNotPresent
-        envFrom:
-        - configMapRef:
-            name: dov-cm
         ports:
         - name: dov-port 
           containerPort: 3000
         resources: {}
+        volumeMounts: 
+        - name: data-vol 
+          mountPath: /opt/data
 
 --- 
 apiVersion: v1 
@@ -55,22 +67,21 @@ spec:
     port: 8080
     targetPort: dov-port
 
+
 --- 
-apiVersion: networking.k8s.io/v1 
-kind: Ingress 
+apiVersion: v1 
+kind: Service 
 metadata: 
-  name: dov-ing 
+  name: dov-hsvc 
   namespace: dov 
+  labels:
+    app: dov 
 spec: 
-  ingressClassName: nginx 
-  rules:
-  - host: dov-188.166.206.98.nip.io 
-    http: 
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service: 
-            name: dov-svc 
-            port:
-              name: dov-port
+  clusterIP: None
+  selector: 
+    app: dov 
+    env: prod
+  ports:
+  - name: dov-port 
+    port: 8080
+    targetPort: dov-port

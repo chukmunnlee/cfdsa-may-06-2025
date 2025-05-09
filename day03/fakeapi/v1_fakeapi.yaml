@@ -7,6 +7,9 @@ metadata:
   labels:
     app: fakeapi
     version: v1
+  annotations:
+    auto-ingress: 'true'
+    ingress-hostname: myingress-host
 spec:
   type: ClusterIP
   selector:
